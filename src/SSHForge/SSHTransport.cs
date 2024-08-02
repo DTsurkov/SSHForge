@@ -7,8 +7,6 @@ using System.Management.Automation.Runspaces;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using System.Text;
 using System.Diagnostics;
 
 namespace SSHForge;
@@ -33,35 +31,6 @@ public sealed class SSHTransport : ProcessTransport
         }
     }
 
-    private static string ToBase64String(string password)
-    {
-        return Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
-    }
-
-    private static string GetAskPassFileLinux(string password)
-    {
-        string base64Name = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
-        string filePath = $"/root/pswd/{base64Name}.sh";
-
-        if (!File.Exists(filePath))
-        {
-            string fileContent = $"echo \"{password}\"";
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            File.WriteAllText(filePath, fileContent);
-
-            try
-            {
-                Process.Start("chmod", $"+x {filePath}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Err during set acces to the file {filePath}: {ex.Message}");
-            }
-        }
-
-        return filePath;
-    }
-
     internal static SSHTransport Create(
         string hostName,
         int port,
@@ -70,7 +39,7 @@ public sealed class SSHTransport : ProcessTransport
         bool disableHostKeyCheck = false)
     {
         string askPassFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "ask_pass.bat" : SSHTransport.GetAskPassFileLinux(credential?.GetNetworkCredential()?.Password);
+            ? "ask_pass.bat" : "ask_pass.sh";
         string askPassScript = Path.GetFullPath(Path.Combine(
             Path.GetDirectoryName(typeof(HvcInfo).Assembly.Location)!,
             "..",
@@ -79,6 +48,18 @@ public sealed class SSHTransport : ProcessTransport
         if (!File.Exists(askPassScript))
         {
             throw new FileNotFoundException($"Failed to find {askPassFile} script at '{askPassScript}'");
+        }
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            try
+            {
+                Process.Start("chmod", $"+x {askPassScript}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to set execution policy to {askPassScript}: {ex.Message}");
+            }
         }
 
         List<string> sshArgs = new();
