@@ -9,8 +9,12 @@
   <ItemGroup>
     <PackageReference Include="SSH.NET" Version="2024.0.0" />
     <PackageReference Include="System.Management.Automation" Version="7.3.0" PrivateAssets="all" />
-    <Reference Include="RemoteForge" Private="false" >
+    <Reference Include="RemoteForge" Private="false">
       <HintPath>../../../RemoteForge/output/RemoteForge/0.1.0/bin/net7.0/RemoteForge.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\RemoteForge\src\RemoteForge\RemoteForge.csproj" />
   </ItemGroup>
 </Project>
