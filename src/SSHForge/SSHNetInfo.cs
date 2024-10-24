@@ -66,7 +66,7 @@ public sealed class SSHNetTransport : RemoteTransport
     protected override async Task Open(CancellationToken cancellationToken)
     {
         await _client.ConnectAsync(cancellationToken);
-        _cmd = _client.CreateCommand("pwsh -NoProfile -SSHServerMode");
+        _cmd = _client.CreateCommand("sudo pwsh -NoProfile -SSHServerMode");
         _cmdTask = _cmd.BeginExecute();
         _stdoutReader = new(_cmd.OutputStream);
         _stderrReader = new(_cmd.ExtendedOutputStream);
