@@ -103,7 +103,7 @@ public sealed class SSHTransport : ProcessTransport
             $"{subsystem}",
         });
 
-        Console.WriteLine($"Using subsystem '{subsystem}'");
+        // Console.WriteLine($"Using subsystem '{subsystem}'");
 
         Dictionary<string, string> envVars = new()
         {
