@@ -1,5 +1,6 @@
 using RemoteForge;
 using System.Management.Automation;
+using System.Reflection.PortableExecutable;
 using System.Security;
 
 namespace SSHForge;
@@ -40,7 +41,7 @@ public sealed class NewSSHv2ForgeInfo : PSCmdlet
 
     protected override void EndProcessing()
     {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(ComputerName);
+        (string hostname, int port, string? user, string? subsystem) = SSHTransport.ParseSSHInfo(ComputerName);
         if (_credential == null && user != null)
         {
             _credential = new(user, new SecureString());
@@ -80,38 +81,9 @@ public sealed class SSHInfo : IRemoteForge
         SkipHostKeyCheck = skipHostKeyCheck;
         Subsystem = subsystem;
     }
-
-    public static IRemoteForge Create(string info, string subsystem)
-    {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
-        PSCredential? credential = null;
-
-        if (user != null)
-        {
-            credential = new PSCredential(user, new SecureString());
-        }
-
-        return new SSHInfo(
-            hostname,
-            port: port,
-            credential: credential,
-            skipHostKeyCheck: false,
-            subsystem: subsystem);
-    }
-
-    public RemoteTransport CreateTransport(string subsystem)
-    {
-        return SSHTransport.Create(
-            ComputerName,
-            Port,
-            credential: Credential,
-            disableHostKeyCheck: SkipHostKeyCheck,
-            subsystem: subsystem ?? Subsystem);
-    }
-
     public static IRemoteForge Create(string info)
     {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
+        (string hostname, int port, string? user, string? subsystem) = SSHTransport.ParseSSHInfo(info);
         PSCredential? credential = null;
         if (user != null)
         {
@@ -121,7 +93,8 @@ public sealed class SSHInfo : IRemoteForge
         return new SSHInfo(
             hostname,
             port: port,
-            credential: credential);
+            credential: credential,
+            subsystem: subsystem);
     }
 
     public RemoteTransport CreateTransport()
@@ -129,6 +102,7 @@ public sealed class SSHInfo : IRemoteForge
             ComputerName,
             Port,
             credential: Credential,
-            disableHostKeyCheck: SkipHostKeyCheck
+            disableHostKeyCheck: SkipHostKeyCheck,
+            subsystem: Subsystem
             );
 }

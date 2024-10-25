@@ -1,5 +1,6 @@
 using RemoteForge;
 using System.Management.Automation;
+using System.Reflection.PortableExecutable;
 using System.Security;
 
 namespace SSHForge;
@@ -73,9 +74,9 @@ public sealed class HvcInfo : IRemoteForge
         Subsystem = subsystem;
     }
 
-    public static IRemoteForge Create(string info, string subsystem)
+    public static IRemoteForge Create(string info)
     {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
+        (string hostname, int port, string? user, string? subsystem) = SSHTransport.ParseSSHInfo(info);
         PSCredential? credential = null;
         if (user != null)
         {
@@ -89,35 +90,12 @@ public sealed class HvcInfo : IRemoteForge
             subsystem: subsystem);
     }
 
-    public RemoteTransport CreateTransport(string subsystem)
-        => SSHTransport.Create(
-            ComputerName,
-            Port,
-            executable: "hvc.exe",
-            credential: Credential,
-            disableHostKeyCheck: SkipHostKeyCheck,
-            subsystem: subsystem);
-
-    public static IRemoteForge Create(string info)
-    {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
-        PSCredential? credential = null;
-        if (user != null)
-        {
-            credential = new(user, new());
-        }
-
-        return new HvcInfo(
-            hostname,
-            port: port,
-            credential: credential);
-    }
-
     public RemoteTransport CreateTransport()
         => SSHTransport.Create(
             ComputerName,
             Port,
             executable: "hvc.exe",
             credential: Credential,
-            disableHostKeyCheck: SkipHostKeyCheck);
+            disableHostKeyCheck: SkipHostKeyCheck,
+            subsystem: Subsystem);
 }

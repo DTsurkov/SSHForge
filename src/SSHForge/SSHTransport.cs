@@ -32,7 +32,7 @@ public sealed class SSHTransport : ProcessTransport
             _runspace.SessionStateProxy.SetVariable("ssh", password);
             Proc.StartInfo.Environment.Add("SSHFORGE_RID", _runspace.Id.ToString());
         }
-        Console.WriteLine($"SSHTransport has been created with subsystem '{subsystem}'");
+        //Console.WriteLine($"SSHTransport has been created with subsystem '{subsystem}'");
     }
 
     internal static SSHTransport Create(
@@ -90,12 +90,20 @@ public sealed class SSHTransport : ProcessTransport
         {
             sshArgs.AddRange(new[] { "-l", credential.UserName });
         }
+
+        if (string.IsNullOrEmpty(subsystem))
+        {
+            subsystem = "powershell";
+        }
+
         sshArgs.AddRange(new[]
         {
             "-p", port.ToString(),
             "-s", hostName,
-            "powershell",
+            $"{subsystem}",
         });
+
+        Console.WriteLine($"Using subsystem '{subsystem}'");
 
         Dictionary<string, string> envVars = new()
         {
@@ -121,15 +129,17 @@ public sealed class SSHTransport : ProcessTransport
         return msg;
     }
 
-    internal static (string, int, string?) ParseSSHInfo(string info)
+    internal static (string, int, string?, string?) ParseSSHInfo(string info)
     {
         // Split out the username portion first to allow UPNs that contain
         // @ as well before the last @ that separates the user from the
         // hostname. This is done because the Uri class will not work if the
         // user contains two '@' chars.
+        string? subsystem = null;
         string? userName = null;
         string hostname;
         int userSplitIdx = info.LastIndexOf('@');
+        int subsystemSplitIdx = info.LastIndexOf(' ');
         int hostNameOffset = 0;
         if (userSplitIdx == -1)
         {
@@ -139,7 +149,8 @@ public sealed class SSHTransport : ProcessTransport
         {
             hostNameOffset = userSplitIdx + 1;
             userName = info.Substring(0, userSplitIdx);
-            hostname = info.Substring(userSplitIdx + 1);
+            hostname = info.Substring(userSplitIdx + 1, subsystemSplitIdx);
+            subsystem = info.Substring(subsystemSplitIdx + 1);
         }
 
         // While we use the Uri class to validate and inspect the provided host
@@ -166,8 +177,8 @@ public sealed class SSHTransport : ProcessTransport
                 ? sshUri.Host
                 : sshUri.OriginalString.Substring(originalHostIndex, sshUri.Host.Length);
         }
-
-        return (hostname, port, userName);
+        Console.WriteLine(subsystem);
+        return (hostname, port, userName, subsystem);
     }
 
     protected override void Dispose(bool isDisposing)

@@ -5,6 +5,8 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Diagnostics;
+using System.Reflection.PortableExecutable;
+using System.Management.Automation.Subsystem;
 
 namespace SSHForge;
 
@@ -19,47 +21,25 @@ public sealed class SSHNetInfo : IRemoteForge
     public string? Subsystem { get; private set; }
 
 
-    private SSHNetInfo(string computerName, int port, string username)
-    {
-        ComputerName = computerName;
-        Port = port;
-        UserName = username;
-
-        Console.WriteLine($"SSHNetInfo has been created withou subsystem");
-    }
-
-    private SSHNetInfo(string computerName, int port, string username, string? subsystem = null)
+    private SSHNetInfo(string computerName, int port, string username, string subsystem)
     {
         ComputerName = computerName;
         Port = port;
         UserName = username;
         Subsystem = subsystem;
-
-        Console.WriteLine($"SSHNetInfo has been created with subsystem '{Subsystem}'");
-    }
-
-    public static IRemoteForge Create(string info, string subsystem)
-    {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
-
-        if (string.IsNullOrWhiteSpace(user))
-        {
-            throw new ArgumentException("User must be supplied in sshnet connection string");
-        }
-
-        return new SSHNetInfo(hostname, port, user, subsystem);
     }
 
     public static IRemoteForge Create(string info)
     {
-        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
+        (string hostname, int port, string? user, string? subsystem) = SSHTransport.ParseSSHInfo(info);
 
         if (string.IsNullOrWhiteSpace(user))
         {
             throw new ArgumentException("User must be supplied in sshnet connection string");
         }
 
-        return new SSHNetInfo(hostname, port, user);
+        throw new ArgumentException($"{subsystem}");
+        return new SSHNetInfo(hostname, port, user, subsystem);
     }
 
     public RemoteTransport CreateTransport()
@@ -72,29 +52,16 @@ public sealed class SSHNetInfo : IRemoteForge
                 new PasswordAuthenticationMethod(UserName, Environment.GetEnvironmentVariable("TEST_PASS")),
             });
 
-        return new SSHNetTransport(connInfo);
+        //Console.WriteLine($"CreateTransport with subsystem '{Subsystem}'");
+        return new SSHNetTransport(connInfo, Subsystem);
+        //return new SSHNetTransport(connInfo, "sudopwsh");
     }
-
-    public RemoteTransport CreateTransport(string? subsystem = null)
-    {
-        ConnectionInfo connInfo = new ConnectionInfo(
-            ComputerName,
-            Port,
-            UserName,
-            new AuthenticationMethod[]
-            {
-                new PasswordAuthenticationMethod(UserName, Environment.GetEnvironmentVariable("TEST_PASS")),
-            });
-
-        return new SSHNetTransport(connInfo, subsystem ?? Subsystem);
-    }
-
 }
 
 public sealed class SSHNetTransport : RemoteTransport
 {
     private readonly SshClient _client;
-    private readonly string _subsystem;
+    private readonly string? _subsystem;
     private SshCommand? _cmd;
     private StreamReader? _stdoutReader;
     private StreamReader? _stderrReader;
@@ -103,17 +70,11 @@ public sealed class SSHNetTransport : RemoteTransport
     private ShellStream? _shellStream;
 
 
-    internal SSHNetTransport(ConnectionInfo connInfo)
-    {
-        _client = new(connInfo);
-        Console.WriteLine($"RemoteTransport has been created without subsystem");
-    }
-
-    internal SSHNetTransport(ConnectionInfo connInfo, string subsystem)
+    internal SSHNetTransport(ConnectionInfo connInfo, string? subsystem = null)
     {
         _client = new(connInfo);
         _subsystem = subsystem;
-        Console.WriteLine($"RemoteTransport has been created with subsystem {subsystem}");
+        //Console.WriteLine($"RemoteTransport has been created without subsystem");
     }
 
     protected override async Task Open(CancellationToken cancellationToken)
@@ -137,7 +98,7 @@ public sealed class SSHNetTransport : RemoteTransport
             _stderrReader = new(_cmd.ExtendedOutputStream);
             _stdinWriter = new(_cmd.CreateInputStream());
         }
-        Console.WriteLine($"Task has been opened {_subsystem}");
+        //Console.WriteLine($"Task has been opened {_subsystem}");
     }
 
     protected override Task Close(CancellationToken cancellationToken)
