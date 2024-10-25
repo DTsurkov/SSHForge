@@ -35,6 +35,9 @@ public sealed class NewSSHv2ForgeInfo : PSCmdlet
     [Parameter]
     public SwitchParameter SkipHostKeyCheck { get; set; }
 
+    [Parameter]
+    public string? Subsystem { get; set; }
+
     protected override void EndProcessing()
     {
         (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(ComputerName);
@@ -47,7 +50,8 @@ public sealed class NewSSHv2ForgeInfo : PSCmdlet
             hostname,
             Port != null ? (int)Port : port,
             _credential,
-            SkipHostKeyCheck));
+            SkipHostKeyCheck,
+            Subsystem));
     }
 }
 
@@ -60,17 +64,49 @@ public sealed class SSHInfo : IRemoteForge
     public int Port { get; }
     public PSCredential? Credential { get; }
     public bool SkipHostKeyCheck { get; }
+    public string? Subsystem { get; }
+
 
     internal SSHInfo(
         string hostname,
         int port = 22,
         PSCredential? credential = null,
-        bool skipHostKeyCheck = false)
+        bool skipHostKeyCheck = false,
+        string? subsystem = null)
     {
         ComputerName = hostname;
         Port = port;
         Credential = credential;
         SkipHostKeyCheck = skipHostKeyCheck;
+        Subsystem = subsystem;
+    }
+
+    public static IRemoteForge Create(string info, string subsystem)
+    {
+        (string hostname, int port, string? user) = SSHTransport.ParseSSHInfo(info);
+        PSCredential? credential = null;
+
+        if (user != null)
+        {
+            credential = new PSCredential(user, new SecureString());
+        }
+
+        return new SSHInfo(
+            hostname,
+            port: port,
+            credential: credential,
+            skipHostKeyCheck: false,
+            subsystem: subsystem);
+    }
+
+    public RemoteTransport CreateTransport(string subsystem)
+    {
+        return SSHTransport.Create(
+            ComputerName,
+            Port,
+            credential: Credential,
+            disableHostKeyCheck: SkipHostKeyCheck,
+            subsystem: subsystem ?? Subsystem);
     }
 
     public static IRemoteForge Create(string info)
@@ -93,5 +129,6 @@ public sealed class SSHInfo : IRemoteForge
             ComputerName,
             Port,
             credential: Credential,
-            disableHostKeyCheck: SkipHostKeyCheck);
+            disableHostKeyCheck: SkipHostKeyCheck
+            );
 }

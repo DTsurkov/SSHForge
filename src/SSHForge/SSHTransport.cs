@@ -14,14 +14,17 @@ namespace SSHForge;
 public sealed class SSHTransport : ProcessTransport
 {
     private Runspace? _runspace;
+    private readonly string _subsystem;
 
     internal SSHTransport(
         string executable,
         IEnumerable<string> arguments,
         Dictionary<string, string> environment,
-        string? password) : base(executable, arguments, environment)
+        string? password,
+        string? subsystem) : base(executable, arguments, environment)
 
     {
+        _subsystem = subsystem;
         if (password != null)
         {
             _runspace = RunspaceFactory.CreateRunspace();
@@ -36,7 +39,8 @@ public sealed class SSHTransport : ProcessTransport
         int port,
         string? executable = null,
         PSCredential? credential = null,
-        bool disableHostKeyCheck = false)
+        bool disableHostKeyCheck = false,
+        string? subsystem = null)
     {
         string askPassFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "ask_pass.bat" : "ask_pass.sh";
@@ -50,7 +54,7 @@ public sealed class SSHTransport : ProcessTransport
             throw new FileNotFoundException($"Failed to find {askPassFile} script at '{askPassScript}'");
         }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             try
             {
@@ -99,7 +103,11 @@ public sealed class SSHTransport : ProcessTransport
             { "SSHFORGE_PID", Environment.ProcessId.ToString() },
         };
 
-        return new SSHTransport(executable, sshArgs, envVars, credential?.GetNetworkCredential()?.Password);
+        Console.WriteLine($"IRemoteForge has been created with subsystem{subsystem}");
+        // throw new ArgumentException($"IRemoteForge has been created with subsystem{subsystem}");
+
+        return new SSHTransport(executable, sshArgs, envVars, credential?.GetNetworkCredential()?.Password, subsystem);
+        // return new SSHTransport(executable, sshArgs, envVars, credential?.GetNetworkCredential()?.Password);
     }
 
     protected override async Task<string?> ReadOutput(CancellationToken cancellationToken)
