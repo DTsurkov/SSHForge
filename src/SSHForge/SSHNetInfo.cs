@@ -24,6 +24,8 @@ public sealed class SSHNetInfo : IRemoteForge
         ComputerName = computerName;
         Port = port;
         UserName = username;
+
+        Console.WriteLine($"SSHNetInfo has been created withou subsystem");
     }
 
     private SSHNetInfo(string computerName, int port, string username, string? subsystem = null)
@@ -32,6 +34,8 @@ public sealed class SSHNetInfo : IRemoteForge
         Port = port;
         UserName = username;
         Subsystem = subsystem;
+
+        Console.WriteLine($"SSHNetInfo has been created with subsystem '{Subsystem}'");
     }
 
     public static IRemoteForge Create(string info, string subsystem)
@@ -42,13 +46,6 @@ public sealed class SSHNetInfo : IRemoteForge
         {
             throw new ArgumentException("User must be supplied in sshnet connection string");
         }
-
-        throw new ArgumentException("IRemoteForge has been created with subsystem");
-
-        Console.WriteLine("IRemoteForge has been created with subsystem");
-        string textToWrite = "IRemoteForge has been created with subsystem";
-        string path = "/Users/denis.tsurkov/Veeam/QA-Development-BackupAutotest/test.txt";
-        File.WriteAllText(path, textToWrite);
 
         return new SSHNetInfo(hostname, port, user, subsystem);
     }
@@ -62,13 +59,6 @@ public sealed class SSHNetInfo : IRemoteForge
             throw new ArgumentException("User must be supplied in sshnet connection string");
         }
 
-        throw new ArgumentException("IRemoteForge has been created without subsystem");
-
-        Console.WriteLine("IRemoteForge has been created without subsystem");
-        string textToWrite = "IRemoteForge has been created without subsystem";
-        string path = "/Users/denis.tsurkov/Veeam/QA-Development-BackupAutotest/test.txt";
-        File.WriteAllText(path, textToWrite);
-
         return new SSHNetInfo(hostname, port, user);
     }
 
@@ -81,6 +71,7 @@ public sealed class SSHNetInfo : IRemoteForge
             new AuthenticationMethod[]{
                 new PasswordAuthenticationMethod(UserName, Environment.GetEnvironmentVariable("TEST_PASS")),
             });
+
         return new SSHNetTransport(connInfo);
     }
 
@@ -115,12 +106,14 @@ public sealed class SSHNetTransport : RemoteTransport
     internal SSHNetTransport(ConnectionInfo connInfo)
     {
         _client = new(connInfo);
+        Console.WriteLine($"RemoteTransport has been created without subsystem");
     }
 
     internal SSHNetTransport(ConnectionInfo connInfo, string subsystem)
     {
         _client = new(connInfo);
         _subsystem = subsystem;
+        Console.WriteLine($"RemoteTransport has been created with subsystem {subsystem}");
     }
 
     protected override async Task Open(CancellationToken cancellationToken)
@@ -134,10 +127,6 @@ public sealed class SSHNetTransport : RemoteTransport
             _stdoutReader = new StreamReader(_shellStream);
             _stderrReader = new StreamReader(_shellStream);
             _stdinWriter = new StreamWriter(_shellStream) { AutoFlush = true };
-            // Console.WriteLine($"Current subsystem: {_subsystem}");
-            string textToWrite = $"Current subsystem: {_subsystem}" + Environment.NewLine;
-            string path = "/Users/denis.tsurkov/Veeam/QA-Development-BackupAutotest/test.txt";
-            File.WriteAllText(path, textToWrite);
         }
         else
         {
@@ -147,11 +136,8 @@ public sealed class SSHNetTransport : RemoteTransport
             _stdoutReader = new(_cmd.OutputStream);
             _stderrReader = new(_cmd.ExtendedOutputStream);
             _stdinWriter = new(_cmd.CreateInputStream());
-
-            string textToWrite = $"No subsystem" + Environment.NewLine;
-            string path = "/Users/denis.tsurkov/Veeam/QA-Development-BackupAutotest/test.txt";
-            File.WriteAllText(path, textToWrite);
         }
+        Console.WriteLine($"Task has been opened {_subsystem}");
     }
 
     protected override Task Close(CancellationToken cancellationToken)

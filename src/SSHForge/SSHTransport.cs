@@ -32,6 +32,7 @@ public sealed class SSHTransport : ProcessTransport
             _runspace.SessionStateProxy.SetVariable("ssh", password);
             Proc.StartInfo.Environment.Add("SSHFORGE_RID", _runspace.Id.ToString());
         }
+        Console.WriteLine($"SSHTransport has been created with subsystem '{subsystem}'");
     }
 
     internal static SSHTransport Create(
@@ -102,12 +103,7 @@ public sealed class SSHTransport : ProcessTransport
             { "SSH_ASKPASS_REQUIRE", "force" },
             { "SSHFORGE_PID", Environment.ProcessId.ToString() },
         };
-
-        Console.WriteLine($"IRemoteForge has been created with subsystem{subsystem}");
-        // throw new ArgumentException($"IRemoteForge has been created with subsystem{subsystem}");
-
         return new SSHTransport(executable, sshArgs, envVars, credential?.GetNetworkCredential()?.Password, subsystem);
-        // return new SSHTransport(executable, sshArgs, envVars, credential?.GetNetworkCredential()?.Password);
     }
 
     protected override async Task<string?> ReadOutput(CancellationToken cancellationToken)
